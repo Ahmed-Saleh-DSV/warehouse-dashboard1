@@ -953,8 +953,7 @@ def main():
         
         col1, col2, col3, col4 = st.columns(4)
     with col1:
-        with st.spinner("Preparing Excel export..."):
-        excel_data, excel_fname = export_to_excel(export_inventory)
+        with st.spinner("Preparing Excel export..."):excel_data, excel_fname = export_to_excel(export_inventory)
             if excel_data:
                st.download_button(
                   label="📊 Export Inventory (Excel)",
@@ -965,8 +964,7 @@ def main():
                 
     with col2:
         with st.spinner("Preparing PDF export..."):
-            if PDF_AVAILABLE:
-            pdf_data, pdf_fname = export_to_pdf(export_inventory)
+            if PDF_AVAILABLE:pdf_data, pdf_fname = export_to_pdf(export_inventory)
             if pdf_data:
                 st.download_button(
                     label="📄 Export Inventory (PDF)",
@@ -1002,6 +1000,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
