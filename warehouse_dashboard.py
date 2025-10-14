@@ -882,12 +882,9 @@ def main():
                log_entry = pd.DataFrame({
                'timestamp': [datetime.now()],
                'action': ['Clear Deleted'],
-               'SKU': ['N/A'],
-               'description': [f"Cleared {num_cleared} deleted SKUs"]
-        })
+               'SKU': ['N/A'],'description': [f"Cleared {num_cleared} deleted SKUs"] })
                st.session_state.change_log = pd.concat(
-               [st.session_state.change_log, log_entry], ignore_index=True
-        )
+               [st.session_state.change_log, log_entry], ignore_index=True)
                st.warning("🗑️ All deleted SKUs permanently removed.")
                st.experimental_rerun() 
 
@@ -1014,6 +1011,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
