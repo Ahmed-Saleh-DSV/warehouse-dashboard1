@@ -976,7 +976,7 @@ def main():
 
     with col3:
         with st.spinner("Preparing Low Stock Excel..."):low_stock_excel_data, low_stock_excel_fname = export_to_excel(low_stock_export)
-             if low_stock_excel_data:
+        if low_stock_excel_data:
                 st.download_button(
                    label="📊 Low Stock Report (Excel)",
                    data=low_stock_excel_data,
@@ -986,8 +986,8 @@ def main():
 
     with col4:
         with st.spinner("Preparing Low Stock PDF..."):
-              if PDF_AVAILABLE:low_stock_pdf_data, low_stock_pdf_fname = export_to_pdf(low_stock_export, is_low_stock_report=True)
-              if low_stock_pdf_data:
+            if PDF_AVAILABLE:low_stock_pdf_data, low_stock_pdf_fname = export_to_pdf(low_stock_export, is_low_stock_report=True)
+            if low_stock_pdf_data:
                 st.download_button(
                     label="📄 Low Stock Report (PDF)",
                     data=low_stock_pdf_data,
@@ -998,6 +998,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
