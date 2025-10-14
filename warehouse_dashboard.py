@@ -879,10 +879,7 @@ def main():
                num_cleared = len(st.session_state.deleted_skus)
                st.session_state.deleted_skus = pd.DataFrame()
         # Log clear
-               log_entry = pd.DataFrame({
-               'timestamp': [datetime.now()],
-               'action': ['Clear Deleted'],
-               'SKU': ['N/A'],'description': [f"Cleared {num_cleared} deleted SKUs"] })
+               log_entry = pd.DataFrame({'timestamp': [datetime.now()],'action': ['Clear Deleted'],'SKU': ['N/A'],'description': [f"Cleared {num_cleared} deleted SKUs"] })
                st.session_state.change_log = pd.concat(
                [st.session_state.change_log, log_entry], ignore_index=True)
                st.warning("🗑️ All deleted SKUs permanently removed.")
@@ -1011,6 +1008,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
