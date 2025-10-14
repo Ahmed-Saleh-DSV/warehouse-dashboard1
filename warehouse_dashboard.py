@@ -969,17 +969,19 @@ def main():
                     use_container_width=True
                 )
         
-        with col2:
+         with col2:
             with st.spinner("Preparing PDF export..."):
-                if PDF_AVAILABLE: pdf_data, pdf_fname = export_to_pdf(export_inventory)
-                    if pdf_data:
-                        st.download_button(
-                            label="📄 Export Inventory (PDF)",
-                            data=pdf_data,
-                            file_name=pdf_fname,
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                            use_container_width=True
-                        )
+              if PDF_AVAILABLE:
+                  pdf_data, pdf_fname = export_to_pdf(export_inventory)
+                 if pdf_data:
+                     st.download_button(
+                     label="📄 Export Inventory (PDF)",
+                     data=pdf_data,
+                     file_name=pdf_fname,
+                     mime="application/pdf",
+                     use_container_width=True
+                )
+
                 else:
                     st.info("PDF export requires reportlab: pip install reportlab")
         
@@ -1011,6 +1013,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
