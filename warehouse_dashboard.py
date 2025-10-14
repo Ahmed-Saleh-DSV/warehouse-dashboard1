@@ -874,20 +874,22 @@ def main():
         st.info("No deleted SKUs. Deletions from the editor will appear here.")
 
     # Clear deleted SKUs button (edge case: clear all)
-    if st.button("Clear All Deleted SKUs (Permanent)"):
-        if 'deleted_skus' in st.session_state:
-            num_cleared = len(st.session_state.deleted_skus)
-            st.session_state.deleted_skus = pd.DataFrame()
-            # Log clear
-            log_entry = pd.DataFrame({
-                'timestamp': [datetime.now()],
-                'action': ['Clear Deleted'],
-                'SKU': ['N/A'],
-                'description': [f"Cleared {num_cleared} deleted SKUs"]
-            })
-            st.session_state.change_log = pd.concat([st.session_state.change_log, log_entry], ignore_index=True)
-        st.warning("🗑️ All deleted SKUs permanently removed.")
-        st.rerun()
+        if st.button("Clear All Deleted SKUs (Permanent)"):
+           if 'deleted_skus' in st.session_state:
+               num_cleared = len(st.session_state.deleted_skus)
+               st.session_state.deleted_skus = pd.DataFrame()
+        # Log clear
+               log_entry = pd.DataFrame({
+               'timestamp': [datetime.now()],
+               'action': ['Clear Deleted'],
+               'SKU': ['N/A'],
+               'description': [f"Cleared {num_cleared} deleted SKUs"]
+        })
+               st.session_state.change_log = pd.concat(
+               [st.session_state.change_log, log_entry], ignore_index=True
+        )
+               st.warning("🗑️ All deleted SKUs permanently removed.")
+               st.experimental_rerun() 
 
     # Post-processing for highlighting (display filtered view with colors)
     # Zero QTY rows in red, Deleted in gray (via styled dataframe)
@@ -1012,6 +1014,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
