@@ -954,7 +954,7 @@ def main():
         col1, col2, col3, col4 = st.columns(4)
     with col1:
         with st.spinner("Preparing Excel export..."):excel_data, excel_fname = export_to_excel(export_inventory)
-            if excel_data:
+        if excel_data:
                st.download_button(
                   label="📊 Export Inventory (Excel)",
                   data=excel_data,
@@ -1000,6 +1000,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
