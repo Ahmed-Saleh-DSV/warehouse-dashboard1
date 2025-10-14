@@ -977,8 +977,8 @@ def main():
                       mime="application/pdf",
                       use_container_width=True
                       )
-                else:
-                    st.info("PDF export requires reportlab: pip install reportlab")
+              else:
+                      st.info("PDF export requires reportlab: pip install reportlab")
         
         with col3:
             with st.spinner("Preparing Low Stock Excel..."):
@@ -1008,6 +1008,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
