@@ -212,8 +212,6 @@ def process_edited_df(full_inventory, loc_cols):
             full_inventory[col] = pd.to_numeric(full_inventory[col], errors='coerce').fillna(0)
     
     # Recalculate QTY as sum of locations
-    full_inventory['QTY']
-1111
     full_inventory['QTY'] = full_inventory['QTY'].clip(lower=0)
     
     # Sync DELETED and Status
@@ -365,9 +363,7 @@ def render_charts(display_inventory, loc_cols, low_threshold, top_n=10):
             st.markdown('</div>', unsafe_allow_html=True)
         with col2:
             st.markdown('<div class="chart-card"><h4>Total Qty per Location (Log)</h4>', unsafe_allow_html=True)
-            fig_log = px.bar(loc_summary, x='Location',
-1111
-            y='Total_Qty', title='', log_y=True)
+            fig_log = px.bar(loc_summary, x='Location', y='Total_Qty', title='', log_y=True)
             st.plotly_chart(fig_log, use_container_width=True)
             st.markdown('</div>', unsafe_allow_html=True)
         with col3:
@@ -596,8 +592,6 @@ def main():
     # Sidebar: Filters & Settings
     st.sidebar.header("🔍 Filters & Settings")
     status_filter = st.sidebar.selectbox("Status", ['All', 'Active', 'Deleted'], index=['All', 'Active', 'Deleted'].index(st.session_state.status_filter))
-    st.session_state.status
-1111
     st.session_state.status_filter = status_filter
     sku_search = st.sidebar.text_input("SKU Search", value=st.session_state.sku_search)
     st.session_state.sku_search = sku_search
@@ -616,7 +610,6 @@ def main():
         st.session_state.location_filter = loc_cols
         st.session_state.low_threshold = 10
         st.session_state.top_n = 10
-        st.rerun()
 
     # Apply filters to update display_inventory
     display_inventory = apply_filters(full_inventory, st.session_state.status_filter, st.session_state.sku_search, st.session_state.desc_search, st.session_state.location_filter, loc_cols)
@@ -978,16 +971,13 @@ def main():
         
         with col2:
             with st.spinner("Preparing PDF export..."):
-                if PDF_AVAILABLE:
-                    pdf
-1111
-                    pdf_data, pdf_fname = export_to_pdf(export_inventory)
+                if PDF_AVAILABLE: pdf_data, pdf_fname = export_to_pdf(export_inventory)
                     if pdf_data:
                         st.download_button(
                             label="📄 Export Inventory (PDF)",
                             data=pdf_data,
                             file_name=pdf_fname,
-                            mime="application/pdf",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                             use_container_width=True
                         )
                 else:
@@ -1014,7 +1004,7 @@ def main():
                             label="📄 Low Stock Report (PDF)",
                             data=low_stock_pdf_data,
                             file_name=low_stock_pdf_fname,
-                            mime="application/pdf",
+                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                             use_container_width=True
                         )
                 else:
@@ -1022,3 +1012,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
