@@ -969,7 +969,7 @@ def main():
                     use_container_width=True
                 )
         
-         with col2:
+        with col2:
             with st.spinner("Preparing PDF export..."):
               if PDF_AVAILABLE:
                   pdf_data, pdf_fname = export_to_pdf(export_inventory)
@@ -1013,6 +1013,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 
