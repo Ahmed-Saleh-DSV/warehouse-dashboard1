@@ -952,60 +952,63 @@ def main():
         low_stock_export = get_low_stock_df(export_inventory, st.session_state.low_threshold)
         
         col1, col2, col3, col4 = st.columns(4)
-        
-        with col1:
-            with st.spinner("Preparing Excel export..."):
-                excel_data, excel_fname = export_to_excel(export_inventory)
-            if excel_data:
+with col1:
+    with st.spinner("Preparing Excel export..."):
+        excel_data, excel_fname = export_to_excel(export_inventory)
+        if excel_data:
+            st.download_button(
+                label="📊 Export Inventory (Excel)",
+                data=excel_data,
+                file_name=excel_fname,
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True
+            )
+
+with col2:
+    with st.spinner("Preparing PDF export..."):
+        if PDF_AVAILABLE:
+            pdf_data, pdf_fname = export_to_pdf(export_inventory)
+            if pdf_data:
                 st.download_button(
-                    label="📊 Export Inventory (Excel)",
-                    data=excel_data,
-                    file_name=excel_fname,
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    label="📄 Export Inventory (PDF)",
+                    data=pdf_data,
+                    file_name=pdf_fname,
+                    mime="application/pdf",
                     use_container_width=True
                 )
-        
-        with col2:
-            with st.spinner("Preparing PDF export..."):
-              if PDF_AVAILABLE:
-                  pdf_data, pdf_fname = export_to_pdf(export_inventory)
-                  if pdf_data:
-                      st.download_button(
-                      label="📄 Export Inventory (PDF)",
-                      data=pdf_data,
-                      file_name=pdf_fname,
-                      mime="application/pdf",
-                      use_container_width=True
-                      )
-              else:
-                      st.info("PDF export requires reportlab: pip install reportlab")
-        
-        with col3:
-            with st.spinner("Preparing Low Stock Excel..."): low_stock_excel_data, low_stock_excel_fname = export_to_excel(low_stock_export)
-              if low_stock_excel_data:
-                   st.download_button(
-                       label="📊 Low Stock Report (Excel)",
-                       data=low_stock_excel_data,
-                       file_name=low_stock_excel_fname,
-                       mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                       use_container_width=True)
-        
-        with col4:
-            with st.spinner("Preparing Low Stock PDF..."):
-              if PDF_AVAILABLE:low_stock_pdf_data, low_stock_pdf_fname = export_to_pdf(low_stock_export, is_low_stock_report=True)
-                   if low_stock_pdf_data:
-                        st.download_button(
-                            label="📄 Low Stock Report (PDF)",
-                            data=low_stock_pdf_data,
-                            file_name=low_stock_pdf_fname,
-                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                            use_container_width=True
-                        )
-                else:
-                    st.info("PDF export requires reportlab: pip install reportlab")
+        else:
+            st.info("PDF export requires reportlab: pip install reportlab")
+
+with col3:
+    with st.spinner("Preparing Low Stock Excel..."):
+        low_stock_excel_data, low_stock_excel_fname = export_to_excel(low_stock_export)
+        if low_stock_excel_data:
+            st.download_button(
+                label="📊 Low Stock Report (Excel)",
+                data=low_stock_excel_data,
+                file_name=low_stock_excel_fname,
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True
+            )
+
+with col4:
+    with st.spinner("Preparing Low Stock PDF..."):
+        if PDF_AVAILABLE:
+            low_stock_pdf_data, low_stock_pdf_fname = export_to_pdf(low_stock_export, is_low_stock_report=True)
+            if low_stock_pdf_data:
+                st.download_button(
+                    label="📄 Low Stock Report (PDF)",
+                    data=low_stock_pdf_data,
+                    file_name=low_stock_pdf_fname,
+                    mime="application/pdf",
+                    use_container_width=True
+                )
+        else:
+            st.info("PDF export requires reportlab: pip install reportlab")
 
 if __name__ == "__main__":
     main()
+
 
 
 
