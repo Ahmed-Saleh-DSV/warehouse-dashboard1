@@ -121,18 +121,22 @@ with col_btn2:
         selected_sku = st.selectbox("Select SKU to Edit", st.session_state.df['SKU'].unique())
         edit_row = st.session_state.df[st.session_state.df['SKU'] == selected_sku].iloc[0]
         with st.form("Edit Form"):
-            form_data = {}
-            for column in st.session_state.df.columns:
-                if st.session_state.df[column].dtype in ['int64', 'float64']:
-                    form_data[column] = st.number_input(column, value=edit_row[column], min_value=0 if column in ['QTYAVAILABLE', 'QTY'] else None)
-                else:
-                    form_data[column] = st.text_input(column, value=str(edit_row[column]))
-            submitted_edit = st.form_submit_button()
-            if submitted_edit:
-                for column in st.session_state.df.columns:
-                    st.session_state.df.loc[st.session_state.df['SKU'] == selected_sku, column] = form_data[column]
-                st.session_state.log.append(f"Edited SKU: {selected_sku}")
-                st.success("SKU edited successfully!")
+    form_data = {}
+    for column in st.session_state.df.columns:
+        if pd.api.types.is_numeric_dtype(st.session_state.df[column]):
+            value = edit_row[column]
+            if pd.isna(value):
+                value = 0  # أو أي قيمة افتراضية مناسبة
+            form_data[column] = st.number_input(column, value=float(value), min_value=0 if column in ['QTYAVAILABLE', 'QTY'] else None)
+        else:
+            form_data[column] = st.text_input(column, value=str(edit_row[column]))
+    submitted_edit = st.form_submit_button()
+    if submitted_edit:
+        for column in st.session_state.df.columns:
+            st.session_state.df.loc[st.session_state.df['SKU'] == selected_sku, column] = form_data[column]
+        st.session_state.log.append(f"Edited SKU: {selected_sku}")
+        st.success("SKU edited successfully!")
+
 
         with col_btn3:
             selected_sku_delete = st.selectbox("Select SKU to Delete", st.session_state.df['SKU'].unique())
@@ -183,6 +187,7 @@ with tab3:
     if st.button("Clear Log"):
         st.session_state.log = []  # Clear the log array
         st.success("Log cleared successfully!")  # Immediate feedback
+
 
 
 
