@@ -184,10 +184,6 @@ with tab3:
         st.session_state.log = []  # Clear the log array
         st.success("Log cleared successfully!")  # Immediate feedback
 
-    
-    if st.button("Clear Log"):
-        st.session_state.log = []
-        st.success("Log cleared successfully!")
 
 
 
