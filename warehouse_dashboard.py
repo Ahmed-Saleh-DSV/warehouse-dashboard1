@@ -1,12 +1,15 @@
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime
 import io
+import streamlit_authenticator as stauth
 from utils.data_handler import DataHandler
 from utils.chart_generator import ChartGenerator
 from utils.excel_handler import ExcelHandler
+from utils.db_handler import DatabaseHandler
 
 # Page configuration
 st.set_page_config(
@@ -16,30 +19,151 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Initialize session state
-if 'inventory_data' not in st.session_state:
-    st.session_state.inventory_data = pd.DataFrame()
-if 'activity_logs' not in st.session_state:
-    st.session_state.activity_logs = []
-if 'low_stock_threshold' not in st.session_state:
-    st.session_state.low_stock_threshold = 10
-
 # Initialize handlers
 data_handler = DataHandler()
 chart_generator = ChartGenerator()
 excel_handler = ExcelHandler()
+db_handler = DatabaseHandler()
+
+# Initialize session state
+if 'inventory_data' not in st.session_state:
+    # Try to load from database first
+    if db_handler.is_connected():
+        st.session_state.inventory_data = db_handler.load_inventory()
+    else:
+        st.session_state.inventory_data = pd.DataFrame()
+
+if 'activity_logs' not in st.session_state:
+    # Try to load from database first
+    if db_handler.is_connected():
+        st.session_state.activity_logs = db_handler.load_logs()
+    else:
+        st.session_state.activity_logs = []
+
+if 'low_stock_threshold' not in st.session_state:
+    st.session_state.low_stock_threshold = 10
+
+if 'db_initialized' not in st.session_state:
+    st.session_state.db_initialized = db_handler.is_connected()
+
+# Authentication configuration
+# NOTE: These are DEMO credentials for development/testing only.
+# In production, replace with environment variables or database-backed user management.
+# Passwords will be auto-hashed by streamlit-authenticator.
+if 'auth_config' not in st.session_state:
+    st.session_state.auth_config = {
+        'credentials': {
+            'usernames': {
+                'admin': {
+                    'name': 'Admin User',
+                    'email': 'admin@warehouse.com',
+                    'password': 'admin123'  # Demo password - will be hashed
+                },
+                'manager': {
+                    'name': 'Manager User',
+                    'email': 'manager@warehouse.com',
+                    'password': 'manager123'  # Demo password - will be hashed
+                },
+                'viewer': {
+                    'name': 'Viewer User',
+                    'email': 'viewer@warehouse.com',
+                    'password': 'viewer123'  # Demo password - will be hashed
+                }
+            }
+        },
+        'cookie': {
+            'expiry_days': 30,
+            'key': 'warehouse_dashboard_key_2025',
+            'name': 'warehouse_auth'
+        },
+        'preauthorized': {
+            'emails': []
+        }
+    }
+
+# Create authenticator
+authenticator = stauth.Authenticate(
+    st.session_state.auth_config['credentials'],
+    st.session_state.auth_config['cookie']['name'],
+    st.session_state.auth_config['cookie']['key'],
+    st.session_state.auth_config['cookie']['expiry_days']
+)
 
 def main():
+    # Authentication
+    name, authentication_status, username = authenticator.login("Login", location="main")
+    
+    if authentication_status == False:
+        st.error('Username/password is incorrect')
+        st.info("Demo credentials: admin/admin123, manager/manager123, viewer/viewer123")
+        return
+    
+    if authentication_status == None:
+        st.warning('Please enter your username and password')
+        st.info("Demo credentials: admin/admin123, manager/manager123, viewer/viewer123")
+        return
+    
+    # User is authenticated
     st.title("📦 Warehouse Inventory Dashboard")
+    
+    # Sidebar with user info and logout
+    with st.sidebar:
+        st.write(f'Welcome **{name}**')
+        st.write(f'Username: *{username}*')
+        authenticator.logout('Logout', 'sidebar')
+        st.markdown("---")
+        st.info(f"Database: {'✅ Connected' if db_handler.is_connected() else '❌ Not Connected'}")
+    
     st.markdown("---")
     
-    # File upload section
+    # File upload section with drag-and-drop styling
+    st.markdown(
+        """
+        <style>
+        .upload-container {
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            border: 2px dashed #667eea;
+            border-radius: 15px;
+            padding: 2rem;
+            text-align: center;
+            margin: 1rem 0;
+            transition: all 0.3s ease;
+        }
+        .upload-container:hover {
+            border-color: #764ba2;
+            background: linear-gradient(135deg, #667eea25 0%, #764ba225 100%);
+        }
+        .upload-text {
+            color: #667eea;
+            font-size: 1.2rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+        .upload-subtext {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+    
     with st.container():
-        st.subheader("📁 Data Upload")
+        st.markdown(
+            """
+            <div class="upload-container">
+                <div class="upload-text">📁 Drag & Drop Your Excel File Here</div>
+                <div class="upload-subtext">or click to browse (Supports .xlsx and .xls files)</div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+        
         uploaded_file = st.file_uploader(
             "Upload Excel file with inventory data",
             type=['xlsx', 'xls'],
-            help="Upload an Excel file containing SKU, Description, QTYAVAILABLE, and location columns"
+            help="Upload an Excel file containing SKU, Description, QTYAVAILABLE, and location columns",
+            label_visibility="collapsed"
         )
         
         if uploaded_file is not None:
@@ -48,8 +172,14 @@ def main():
                     df = pd.read_excel(uploaded_file)
                     if data_handler.validate_data(df):
                         st.session_state.inventory_data = df
-                        st.success(f"✅ Successfully loaded {len(df)} items from {uploaded_file.name}")
+                        
+                        # Save to database
+                        if db_handler.is_connected():
+                            db_handler.save_inventory(df)
+                            db_handler.save_log("Upload", f"Loaded {len(df)} items from {uploaded_file.name}")
+                        
                         data_handler.log_activity("Upload", f"Loaded {len(df)} items from {uploaded_file.name}")
+                        st.success(f"✅ Successfully loaded {len(df)} items from {uploaded_file.name}")
                     else:
                         st.error("❌ Invalid file format. Please ensure your Excel file contains the required columns.")
             except Exception as e:
@@ -171,15 +301,27 @@ def render_overview_tab():
     location_columns = [col for col in df.columns if col not in ['SKU', 'Description', 'QTYAVAILABLE'] and col != '']
     
     if location_columns:
-        # Create location summary
+        # Create location summary - extract only totals for chart
         location_summary = {}
         for col in location_columns:
             if df[col].dtype in ['int64', 'float64']:
                 location_summary[col] = df[col].sum()
         
         if location_summary:
-            fig_locations = chart_generator.create_location_summary_chart(location_summary)
-            st.plotly_chart(fig_locations, use_container_width=True)
+            col1, col2 = st.columns([1, 1])
+            
+            with col1:
+                # Pass the simple {location: total} dict to chart generator
+                fig_locations = chart_generator.create_location_summary_chart(location_summary)
+                st.plotly_chart(fig_locations, use_container_width=True)
+            
+            with col2:
+                # Add heatmap visualization
+                fig_heatmap = chart_generator.create_inventory_heatmap(df)
+                if fig_heatmap:
+                    st.plotly_chart(fig_heatmap, use_container_width=True)
+                else:
+                    st.info("Heatmap requires at least 2 location columns with numeric data.")
         else:
             st.info("No numeric location data found for summary charts.")
     else:
@@ -258,24 +400,29 @@ def render_inventory_management_tab():
     # Display inventory table with conditional coloring
     st.subheader("📋 Inventory Table")
     
-    # Apply conditional formatting
-    def color_rows(row):
-        if 'QTYAVAILABLE' in row:
+    # Apply conditional formatting based on quantity
+    def highlight_quantity(row):
+        if 'QTYAVAILABLE' in row.index:
             qty = row['QTYAVAILABLE']
             if qty <= st.session_state.low_stock_threshold:
-                return ['background-color: #ffebee'] * len(row)  # Light red
+                color = '#ffcdd2'  # Light red
             elif qty <= st.session_state.low_stock_threshold * 2:
-                return ['background-color: #fff3e0'] * len(row)  # Light orange
+                color = '#fff9c4'  # Light yellow
             else:
-                return ['background-color: #e8f5e8'] * len(row)  # Light green
+                color = '#c8e6c9'  # Light green
+            return [f'background-color: {color}'] * len(row)
         return [''] * len(row)
     
-    # Display dataframe
-    st.dataframe(
-        filtered_df,
-        use_container_width=True,
-        hide_index=True
-    )
+    # Apply styling and display
+    if not filtered_df.empty:
+        styled_df = filtered_df.style.apply(highlight_quantity, axis=1)
+        st.dataframe(
+            styled_df,
+            use_container_width=True,
+            hide_index=True
+        )
+    else:
+        st.info("No data to display. Try adjusting your search filters.")
     
     # Handle forms
     handle_inventory_forms(df)
@@ -321,6 +468,11 @@ def handle_inventory_forms(df):
                                 pd.DataFrame([new_row])
                             ], ignore_index=True)
                             
+                            # Save to database
+                            if db_handler.is_connected():
+                                db_handler.save_inventory(st.session_state.inventory_data)
+                                db_handler.save_log("Add", f"Added SKU: {new_sku}")
+                            
                             data_handler.log_activity("Add", f"Added SKU: {new_sku}")
                             st.success(f"✅ Added SKU: {new_sku}")
                             st.session_state.show_add_form = False
@@ -332,6 +484,127 @@ def handle_inventory_forms(df):
                     if st.form_submit_button("Cancel"):
                         st.session_state.show_add_form = False
                         st.rerun()
+    
+    # Edit form
+    if st.session_state.get('show_edit_form', False):
+        with st.expander("✏️ Edit SKU", expanded=True):
+            # SKU selection
+            if not df.empty and 'SKU' in df.columns:
+                selected_sku = st.selectbox(
+                    "Select SKU to Edit:",
+                    options=df['SKU'].tolist(),
+                    key="edit_sku_selector"
+                )
+                
+                if selected_sku:
+                    # Get the row data
+                    row_index = df[df['SKU'] == selected_sku].index[0]
+                    row_data = df.loc[row_index]
+                    
+                    with st.form("edit_sku_form"):
+                        col1, col2 = st.columns(2)
+                        
+                        with col1:
+                            edit_sku = st.text_input("SKU*", value=str(row_data.get('SKU', '')))
+                            edit_qty = st.number_input(
+                                "Quantity Available*", 
+                                min_value=0, 
+                                value=int(row_data.get('QTYAVAILABLE', 0))
+                            )
+                        
+                        with col2:
+                            edit_description = st.text_input(
+                                "Description", 
+                                value=str(row_data.get('Description', ''))
+                            )
+                        
+                        # Dynamic location fields
+                        location_columns = [col for col in df.columns if col not in ['SKU', 'Description', 'QTYAVAILABLE']]
+                        location_values = {}
+                        
+                        if location_columns:
+                            st.subheader("Location Details")
+                            for col in location_columns:
+                                location_values[col] = st.number_input(
+                                    f"{col}", 
+                                    min_value=0, 
+                                    value=int(row_data.get(col, 0)),
+                                    key=f"edit_{col}"
+                                )
+                        
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            if st.form_submit_button("Update SKU"):
+                                if edit_sku:
+                                    # Update the row
+                                    st.session_state.inventory_data.at[row_index, 'SKU'] = edit_sku
+                                    st.session_state.inventory_data.at[row_index, 'Description'] = edit_description
+                                    st.session_state.inventory_data.at[row_index, 'QTYAVAILABLE'] = edit_qty
+                                    
+                                    for col, val in location_values.items():
+                                        st.session_state.inventory_data.at[row_index, col] = val
+                                    
+                                    # Save to database
+                                    if db_handler.is_connected():
+                                        db_handler.save_inventory(st.session_state.inventory_data)
+                                        db_handler.save_log("Edit", f"Updated SKU: {edit_sku}")
+                                    
+                                    data_handler.log_activity("Edit", f"Updated SKU: {edit_sku}")
+                                    st.success(f"✅ Updated SKU: {edit_sku}")
+                                    st.session_state.show_edit_form = False
+                                    st.rerun()
+                                else:
+                                    st.error("SKU is required!")
+                        
+                        with col2:
+                            if st.form_submit_button("Cancel"):
+                                st.session_state.show_edit_form = False
+                                st.rerun()
+            else:
+                st.warning("No SKUs available to edit.")
+                if st.button("Close"):
+                    st.session_state.show_edit_form = False
+                    st.rerun()
+    
+    # Delete form
+    if st.session_state.get('show_delete_confirm', False):
+        with st.expander("🗑️ Delete SKU", expanded=True):
+            if not df.empty and 'SKU' in df.columns:
+                selected_sku_delete = st.selectbox(
+                    "Select SKU to Delete:",
+                    options=df['SKU'].tolist(),
+                    key="delete_sku_selector"
+                )
+                
+                if selected_sku_delete:
+                    st.warning(f"⚠️ Are you sure you want to delete SKU: {selected_sku_delete}?")
+                    
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        if st.button("🗑️ Confirm Delete", type="primary"):
+                            # Delete the row
+                            row_index = df[df['SKU'] == selected_sku_delete].index[0]
+                            st.session_state.inventory_data = st.session_state.inventory_data.drop(row_index).reset_index(drop=True)
+                            
+                            # Save to database
+                            if db_handler.is_connected():
+                                db_handler.save_inventory(st.session_state.inventory_data)
+                                db_handler.save_log("Delete", f"Deleted SKU: {selected_sku_delete}")
+                            
+                            data_handler.log_activity("Delete", f"Deleted SKU: {selected_sku_delete}")
+                            st.success(f"✅ Deleted SKU: {selected_sku_delete}")
+                            st.session_state.show_delete_confirm = False
+                            st.rerun()
+                    
+                    with col2:
+                        if st.button("Cancel"):
+                            st.session_state.show_delete_confirm = False
+                            st.rerun()
+            else:
+                st.warning("No SKUs available to delete.")
+                if st.button("Close"):
+                    st.session_state.show_delete_confirm = False
+                    st.rerun()
 
 def render_logs_tab():
     """Render the Logs tab"""
@@ -342,6 +615,11 @@ def render_logs_tab():
     with col2:
         if st.button("🗑️ Clear Logs", use_container_width=True):
             st.session_state.activity_logs = []
+            
+            # Clear logs in database
+            if db_handler.is_connected():
+                db_handler.clear_logs()
+            
             st.success("Logs cleared!")
             st.rerun()
     
