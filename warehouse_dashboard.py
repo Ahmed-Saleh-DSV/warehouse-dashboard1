@@ -6,7 +6,6 @@ from plotly.subplots import make_subplots
 import numpy as np
 from io import BytesIO
 import warnings
-from st_aggrid import AgGrid, GridOptionsBuilder
 import base64
 
 # Page configuration for wide, modern layout
@@ -167,4 +166,5 @@ with tab3:
     if st.button("Clear Log"):
         st.session_state.log = []
         st.success("Log cleared successfully!")
+
 
