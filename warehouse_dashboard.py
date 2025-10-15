@@ -53,9 +53,9 @@ with tab1:
         
         # KPIs with modern color themes
         col1, col2, col3 = st.columns(3)
-        with col1: st.metric(label="Total SKUs", value=total_skus, delta=None, help="Total unique SKUs", label_color="blue")
-        with col2: st.metric(label="Total Quantity", value=total_qty, delta=None, help="Sum of QTYAVAILABLE", label_color="green")
-        with col3: st.metric(label="Low Stock Alerts", value=len(low_stock), delta=None, help=f"Items below {low_stock_threshold}", label_color="red")
+        with col1: st.metric(label="Total SKUs", value=total_skus, delta=None, help="Total unique SKUs")
+        with col2: st.metric(label="Total Quantity", value=total_qty, delta=None, help="Sum of QTYAVAILABLE")
+        with col3: st.metric(label="Low Stock Alerts", value=len(low_stock), delta=None, help=f"Items below {low_stock_threshold}")
         
         # Interactive Plotly charts
         if not low_stock.empty:
@@ -161,3 +161,4 @@ with tab3:
     if st.button("Clear Log"):
         st.session_state.log = []
         st.success("Log cleared successfully!")
+
