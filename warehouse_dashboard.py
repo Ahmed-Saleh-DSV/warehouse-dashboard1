@@ -2,10 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
-import numpy as np
-from io import BytesIO
-import warnings
+import io
 import base64
 
 # Page configuration for wide, modern layout
@@ -25,9 +22,6 @@ with st.sidebar:
         st.session_state.df = pd.read_excel(uploaded_file)
         st.session_state.log.append("Uploaded new Excel file")
         st.success("Excel file uploaded and loaded successfully!")
-
-# Tabs navigation
-tab1, tab2, tab3 = st.tabs(["Dashboard Overview", "Inventory Management", "Logs"])
 
 # Function for dynamic form generation
 def generate_dynamic_form(df, is_edit=False, edit_row=None):
@@ -91,21 +85,22 @@ with tab2:
     st.header("Inventory Management")
     
     if not st.session_state.df.empty:
-        # AgGrid for high-performance table with editing, filtering, sorting, and pagination
-        gb = GridOptionsBuilder.from_dataframe(st.session_state.df)
-        gb.configure_pagination(paginationAutoPageSize=True)  # Pagination for large datasets
-        gb.configure_side_bar()  # Enable filtering and sorting
-        gb.configure_selection(selection_mode="single", use_checkbox=True)
-        gb.configure_grid_options(editable=True)  # Inline editing
-        # Conditional formatting for QTYAVAILABLE
-        gb.configure_columns([{ "field": "QTYAVAILABLE", "cellStyle": {"color": "white", "backgroundColor": lambda params: "red" if params['value'] < 10 else "yellow" if params['value'] < 20 else "green"} }])
-        grid_options = gb.build()
+        # Search and filter for basic UX
+        search_query = st.text_input("Search by SKU or Description")
+        if search_query:
+            filtered_df = st.session_state.df[
+                st.session_state.df.apply(lambda row: search_query.upper() in str(row).upper(), axis=1)
+            ]
+        else:
+            filtered_df = st.session_state.df
         
-        grid_response = AgGrid(st.session_state.df, gridOptions=grid_options, height=400, width='100%', data_return_mode='AS_INPUT', update_mode='GRID_CHANGED')
+        # Color-coded table using styled DataFrame
+        def highlight_rows(row):
+            color = 'red' if row['QTYAVAILABLE'] < 10 else 'yellow' if row['QTYAVAILABLE'] < 20 else 'green'
+            return ['background-color: {}'.format(color)] * len(row)
         
-        updated_df = grid_response['data']  # Get updated data from AgGrid
-        st.session_state.df = pd.DataFrame(updated_df)  # Update session state immediately
-        st.session_state.log.append("Edited inventory via AgGrid")  # Log changes
+        styled_df = filtered_df.style.apply(highlight_rows, axis=1)
+        st.dataframe(styled_df, height=400)  # Scrollable table
         
         # Add new SKU
         if st.button("Add New SKU"):
@@ -118,30 +113,27 @@ with tab2:
                     st.session_state.log.append(f"Added SKU: {form_data.get('SKU', 'Unknown')}")
                     st.success("SKU added successfully!")
         
-        # Edit existing SKU (using AgGrid's inline edit, but fallback form)
+        # Edit existing SKU
+        selected_sku = st.selectbox("Select SKU to Edit", st.session_state.df['SKU'].unique())
         if st.button("Edit Selected SKU"):
-            selected_rows = grid_response['selected_rows']
-            if selected_rows:
-                edit_row = selected_rows[0]
-                with st.form("Edit Form"):
-                    form_data = generate_dynamic_form(st.session_state.df, is_edit=True, edit_row=edit_row)
-                    submitted_edit = st.form_submit_button()
-                    if submitted_edit:
-                        # Update the row in the DataFrame
-                        for idx, row in st.session_state.df.iterrows():
-                            if row['SKU'] == edit_row['SKU']:
-                                st.session_state.df.loc[idx] = list(form_data.values())
-                        st.session_state.log.append(f"Edited SKU: {edit_row['SKU']}")
-                        st.success("SKU edited successfully!")
+            edit_row = st.session_state.df[st.session_state.df['SKU'] == selected_sku].iloc[0]
+            with st.form("Edit Form"):
+                form_data = generate_dynamic_form(st.session_state.df, is_edit=True, edit_row=edit_row)
+                submitted_edit = st.form_submit_button()
+                if submitted_edit:
+                    for idx, row in st.session_state.df.iterrows():
+                        if row['SKU'] == selected_sku:
+                            st.session_state.df.loc[idx] = list(form_data.values())
+                    st.session_state.log.append(f"Edited SKU: {selected_sku}")
+                    st.success("SKU edited successfully!")
         
         # Delete SKU with confirmation
         if st.button("Delete Selected SKU"):
-            selected_rows = grid_response['selected_rows']
-            if selected_rows:
-                if st.confirm("Are you sure you want to delete this SKU?"):
-                    sku_to_delete = selected_rows[0]['SKU']
-                    st.session_state.df = st.session_state.df[st.session_state.df['SKU'] != sku_to_delete]
-                    st.session_state.log.append(f"Deleted SKU: {sku_to_delete}")
+            selected_sku_delete = st.selectbox("Select SKU to Delete", st.session_state.df['SKU'].unique())
+            if st.button("Confirm Delete"):
+                if st.confirm("Are you sure?"):
+                    st.session_state.df = st.session_state.df[st.session_state.df['SKU'] != selected_sku_delete]
+                    st.session_state.log.append(f"Deleted SKU: {selected_sku_delete}")
                     st.success("SKU deleted successfully!")
         
         # Download as Excel
@@ -166,5 +158,3 @@ with tab3:
     if st.button("Clear Log"):
         st.session_state.log = []
         st.success("Log cleared successfully!")
-
-
