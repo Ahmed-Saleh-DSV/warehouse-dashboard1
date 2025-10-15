@@ -23,7 +23,7 @@ with st.sidebar:
         st.session_state.log.append("Uploaded new Excel file")
         st.success("Excel file uploaded and loaded successfully!")
 
-# Tabs navigation (ensure this is defined before using tab1, tab2, tab3)
+# Tabs navigation
 tab1, tab2, tab3 = st.tabs(["Dashboard Overview", "Inventory Management", "Logs"])
 
 # Function for dynamic form generation
@@ -66,20 +66,30 @@ with tab1:
             fig_bar.update_layout(showlegend=True)
             st.plotly_chart(fig_bar, use_container_width=True)
             
-            # Heatmap for quantity distribution across locations
+            # Fixed Heatmap for quantity distribution across locations
             location_cols = [col for col in st.session_state.df.columns if col in ['21KCH2', '21KCH5', '3K-M45', '6KMZ-2', 'YARD']]
-            if location_cols:
-                heatmap_data = st.session_state.df.groupby(location_cols[0])['QTYAVAILABLE'].sum().reset_index()
-                for col in location_cols[1:]:
-                    heatmap_data = heatmap_data.groupby(col)['QTYAVAILABLE'].sum().reset_index()
-                fig_heatmap = go.Figure(data=go.Heatmap(
-                    z=heatmap_data['QTYAVAILABLE'],
-                    x=heatmap_data.columns[1:],
-                    y=heatmap_data[heatmap_data.columns[0]],
-                    colorscale='Greens'
-                ))
-                fig_heatmap.update_layout(title="Quantity Distribution Across Locations")
-                st.plotly_chart(fig_heatmap, use_container_width=True)
+            if location_cols and len(location_cols) >= 2:  # Ensure at least two columns for a meaningful pivot
+                try:
+                    # Pivot the data for the first two location columns
+                    pivot_data = st.session_state.df.pivot_table(
+                        values='QTYAVAILABLE',
+                        index=location_cols[0],  # First location as index
+                        columns=location_cols[1],  # Second location as columns
+                        aggfunc='sum'
+                    ).fillna(0)
+                    
+                    fig_heatmap = go.Figure(data=go.Heatmap(
+                        z=pivot_data.values,
+                        x=pivot_data.columns,
+                        y=pivot_data.index,
+                        colorscale='Greens'
+                    ))
+                    fig_heatmap.update_layout(title="Quantity Distribution Across Locations")
+                    st.plotly_chart(fig_heatmap, use_container_width=True)
+                except KeyError as e:
+                    st.error(f"Error generating heatmap: {e}. Ensure location columns exist in your data.")
+            elif location_cols:
+                st.warning("Not enough location columns for a heatmap. Need at least two.")
         
         with st.expander("Low Stock Details"):
             st.dataframe(low_stock)
@@ -161,4 +171,3 @@ with tab3:
     if st.button("Clear Log"):
         st.session_state.log = []
         st.success("Log cleared successfully!")
-
