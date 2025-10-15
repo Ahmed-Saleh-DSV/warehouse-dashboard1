@@ -102,37 +102,35 @@ with tab2:
         
         with col_btn1:
             if st.button("Add New SKU"):
-    with st.form("Add Form"):
-        form_data = {}  # Dictionary to hold form inputs
-        for column in st.session_state.df.columns:
-            if st.session_state.df[column].dtype in ['int64', 'float64']:  # Check for numeric columns
-                form_data[column] = st.number_input(column, min_value=0 if column in ['QTYAVAILABLE', 'QTY'] else None)
-            else:
-                form_data[column] = st.text_input(column)
-        submitted = st.form_submit_button()
-        if submitted:
-            new_row = pd.DataFrame([form_data.values()], columns=form_data.keys())
-            st.session_state.df = pd.concat([st.session_state.df, new_row], ignore_index=True)
-            st.session_state.log.append(f"Added SKU: {form_data.get('SKU', 'Unknown')}")
-            st.success("SKU added successfully!")
+               with st.form("Add Form"):
+                   form_data = {}  # Dictionary to hold form inputs
+                   for column in st.session_state.df.columns:
+                       if st.session_state.df[column].dtype in ['int64', 'float64']:  # Check for numeric columns
+                          form_data[column] = st.number_input(column, min_value=0 if column in ['QTYAVAILABLE', 'QTY'] else None)
+                       else:
+                           form_data[column] = st.text_input(column)
+                   submitted = st.form_submit_button()
+                   if submitted:
+                      new_row = pd.DataFrame([form_data.values()], columns=form_data.keys())
+                      st.session_state.df = pd.concat([st.session_state.df, new_row], ignore_index=True)
+                      st.session_state.log.append(f"Added SKU: {form_data.get('SKU', 'Unknown')}")
+                      st.success("SKU added successfully!")
         
         with col_btn2:
-            if st.button("Edit Selected SKU"):
-    selected_sku = st.selectbox("Select SKU to Edit", st.session_state.df['SKU'].unique())
-    edit_row = st.session_state.df[st.session_state.df['SKU'] == selected_sku].iloc[0]
-    with st.form("Edit Form"):
-        form_data = {}
-        for column in st.session_state.df.columns:
-            if st.session_state.df[column].dtype in ['int64', 'float64']:
-                form_data[column] = st.number_input(column, value=edit_row[column], min_value=0 if column in ['QTYAVAILABLE', 'QTY'] else None)
-            else:
-                form_data[column] = st.text_input(column, value=str(edit_row[column]))  # Convert to string for text input
-        submitted_edit = st.form_submit_button()
-        if submitted_edit:
-            for column in st.session_state.df.columns:
-                st.session_state.df.loc[st.session_state.df['SKU'] == selected_sku, column] = form_data[column]
-            st.session_state.log.append(f"Edited SKU: {selected_sku}")
-            st.success("SKU edited successfully!")
+            if st.button("Edit Selected SKU"): selected_sku = st.selectbox("Select SKU to Edit", st.session_state.df['SKU'].unique())
+               edit_row = st.session_state.df[st.session_state.df['SKU'] == selected_sku].iloc[0]
+               with st.form("Edit Form"):
+                   form_data = {}
+                       if st.session_state.df[column].dtype in ['int64', 'float64']:
+                          form_data[column] = st.number_input(column, value=edit_row[column], min_value=0 if column in ['QTYAVAILABLE', 'QTY'] else None)
+                       else:
+                           form_data[column] = st.text_input(column, value=str(edit_row[column]))  # Convert to string for text input
+                     submitted_edit = st.form_submit_button()
+                     if submitted_edit:
+                   for column in st.session_state.df.columns:
+                   st.session_state.df.loc[st.session_state.df['SKU'] == selected_sku, column] = form_data[column]
+                   st.session_state.log.append(f"Edited SKU: {selected_sku}")
+                   st.success("SKU edited successfully!")
         with col_btn3:
             selected_sku_delete = st.selectbox("Select SKU to Delete", st.session_state.df['SKU'].unique())
             if st.button("Delete Selected SKU"):
@@ -187,3 +185,4 @@ with tab3:
     if st.button("Clear Log"):
         st.session_state.log = []
         st.success("Log cleared successfully!")
+
