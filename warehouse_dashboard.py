@@ -23,6 +23,9 @@ with st.sidebar:
         st.session_state.log.append("Uploaded new Excel file")
         st.success("Excel file uploaded and loaded successfully!")
 
+# Tabs navigation (ensure this is defined before using tab1, tab2, tab3)
+tab1, tab2, tab3 = st.tabs(["Dashboard Overview", "Inventory Management", "Logs"])
+
 # Function for dynamic form generation
 def generate_dynamic_form(df, is_edit=False, edit_row=None):
     form_data = {}
