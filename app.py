@@ -1,3 +1,254 @@
+Okay, this is an ambitious request for a full, copy-pastable code, as it involves a multi-file structure and several advanced features. I will provide a comprehensive, single-file `app.py` (and a `styles.css`) that integrates:
+
+1.  **Streamlit Framework**
+2.  **Multi-User Authentication** (`streamlit-authenticator` with SQLite)
+3.  **Persistent Storage** (SQLite via SQLAlchemy for Users, Inventory, Logs, Transactions)
+4.  **Dashboard Overview** (KPIs, Low Stock Alerts, Interactive Charts)
+5.  **Inventory Management** (CRUD, Search/Filter, Excel Upload/Export)
+6.  **Activity Logs** (User actions)
+7.  **Basic Analytics** (Inflow/Outflow, Stock Trend - *simplified forecasting*)
+8.  **Responsive & Professional Styling** (Custom CSS)
+9.  **Error Handling & UX** (`st.spinner`, `st.error`, `st.success`)
+
+**Important Considerations for Replit:**
+
+*   **Database:** SQLite is file-based (`inventory_dashboard.db`). Replit's default behavior saves this file, so data will persist across sessions/restarts.
+*   **Performance:** For very large datasets (thousands of SKUs, millions of transactions), SQLite might become slow. For production, consider PostgreSQL/MySQL.
+*   **Forecasting:** A full-blown ML forecasting model (like ARIMA, Prophet) is complex and beyond a simple, copy-pastable example due to model training, serialization, and dependencies. I'll implement a *basic trend visualization* based on historical transaction data as a placeholder for where a more advanced model would integrate.
+*   **Email/SMS Alerts:** Requires external services (e.g., SendGrid, Twilio) and background tasks, which are out of scope for this self-contained example.
+*   **Admin User:** The code will automatically create an `admin` user if the database is empty.
+
+---
+
+### **Step 1: Create `requirements.txt`**
+
+Create a file named `requirements.txt` in your Replit project and paste the following:
+
+```
+streamlit
+pandas
+plotly
+sqlalchemy
+bcrypt
+streamlit-authenticator
+openpyxl
+```
+
+---
+
+### **Step 2: Create `styles.css`**
+
+Create a file named `styles.css` in your Replit project and paste the following:
+
+```css
+/* General Body and Font Styling */
+body {
+    font-family: 'Inter', sans-serif;
+    color: #333;
+    background-color: #f0f2f6; /* Light gray background */
+}
+
+/* Streamlit Header Overrides */
+h1 {
+    color: #2c3e50; /* Dark blue-gray */
+    font-weight: 700;
+    margin-bottom: 20px;
+}
+
+h2 {
+    color: #34495e;
+    font-weight: 600;
+    margin-top: 30px;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+}
+
+h3 {
+    color: #555;
+    font-weight: 500;
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+/* Custom KPI Card Styling */
+.kpi-card {
+    background: linear-gradient(135deg, #ffffff, #f9f9f9); /* Subtle gradient */
+    border-radius: 12px;
+    padding: 20px 25px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08); /* Soft shadow */
+    border: 1px solid #e0e0e0;
+    transition: transform 0.2s ease-in-out;
+}
+
+.kpi-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+
+.kpi-card .stMetric {
+    padding: 0;
+}
+
+.kpi-card .stMetric label {
+    font-size: 1.1em;
+    color: #666;
+    margin-bottom: 5px;
+    display: block;
+}
+
+.kpi-card .stMetric div[data-testid="stMetricValue"] {
+    font-size: 2.2em;
+    font-weight: 700;
+    color: #2980b9; /* A professional blue */
+}
+
+/* Streamlit specific elements */
+.stTabs [data-testid="stTabItem"] {
+    font-size: 1.1em;
+    font-weight: 500;
+    color: #555;
+}
+
+.stTabs [data-testid="stTabItem"][aria-selected="true"] {
+    color: #2980b9;
+    border-bottom: 3px solid #2980b9;
+}
+
+/* Sidebar styling */
+[data-testid="stSidebar"] {
+    background-color: #ffffff;
+    box-shadow: 2px 0 10px rgba(0,0,0,0.05);
+}
+
+[data-testid="stSidebar"] .stButton button {
+    background-color: #e74c3c; /* Red for logout */
+    color: white;
+    border-radius: 8px;
+    border: none;
+    padding: 8px 15px;
+    font-weight: 500;
+}
+
+[data-testid="stSidebar"] .stButton button:hover {
+    background-color: #c0392b;
+}
+
+/* General Button Styling */
+.stButton button {
+    background-color: #3498db; /* Blue for primary actions */
+    color: white;
+    border-radius: 8px;
+    border: none;
+    padding: 10px 20px;
+    font-weight: 600;
+    transition: background-color 0.2s ease-in-out;
+}
+
+.stButton button:hover {
+    background-color: #2980b9;
+}
+
+/* Specific buttons for clarity */
+.stButton button[title="Add Item"],
+.stButton button[title="Update Item"],
+.stButton button[title="Delete Item"] {
+    background-color: #2ecc71; /* Green for Add/Update */
+}
+
+.stButton button[title="Add Item"]:hover,
+.stButton button[title="Update Item"]:hover {
+    background-color: #27ae60;
+}
+
+.stButton button[title="Delete Item"] {
+    background-color: #e74c3c; /* Red for Delete */
+}
+
+.stButton button[title="Delete Item"]:hover {
+    background-color: #c0392b;
+}
+
+/* Expander Styling */
+.stExpander {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background-color: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    margin-bottom: 15px;
+}
+
+.stExpander div[data-testid="stExpanderHeader"] {
+    padding: 15px 20px;
+    font-weight: 600;
+    color: #34495e;
+    background-color: #fdfdfd;
+    border-bottom: 1px solid #eee;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+/* Dataframe styling - limited by Streamlit, but can influence container */
+[data-testid="stDataFrame"] {
+    border-radius: 8px;
+    overflow: hidden; /* Ensures border radius applies to corners */
+}
+
+/* File uploader styling */
+.stFileUploader {
+    border: 2px dashed #bdc3c7;
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+    background-color: #ecf0f1;
+    transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+}
+
+.stFileUploader:hover {
+    background-color: #e0e5e7;
+    border-color: #95a5a6;
+}
+
+/* Custom classes for low stock items */
+.low-stock-row {
+    background-color: #ffe0e0 !important; /* Light red */
+}
+.low-stock-text {
+    color: #e74c3c;
+    font-weight: bold;
+}
+
+/* General containers */
+.stContainer {
+    padding: 0 !important;
+}
+
+/* Remove default Streamlit padding from main content area */
+.main .block-container {
+    padding-top: 2rem;
+    padding-right: 2rem;
+    padding-left: 2rem;
+    padding-bottom: 2rem;
+}
+
+/* Custom styles for the analytics charts */
+.chart-container {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+    margin-bottom: 20px;
+}
+```
+
+---
+
+### **Step 3: Create `app.py`**
+
+Create a file named `app.py` in your Replit project and paste the following:
+
+```python
 import streamlit as st
 import pandas as pd
 import plotly.express as px
